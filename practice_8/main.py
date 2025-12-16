@@ -113,6 +113,8 @@ def main():
         print("Введите: N M [seed]")
         return
 
+    # Формат ввода:
+    # N M [seed]
     N = int(data[0])
     M = int(data[1])
     seed = int(data[2]) if len(data) > 2 else None

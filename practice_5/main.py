@@ -47,14 +47,15 @@ def parallel_count(arr, max_workers=None):
 
 
 def main():
-    # Ввод:
-    # n
-    # a1 a2 ... an
     import sys
 
     data = sys.stdin.read().strip().split()
     if not data:
         return
+
+    # Формат ввода:
+    # n
+    # a1 a2 ... an
     n = int(data[0])
     arr = list(map(int, data[1:n + 1]))
 
