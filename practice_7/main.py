@@ -41,12 +41,12 @@ def parallel_count(arr, L: int, max_workers=None):
     shared_q = deque()
     q_sem = threading.BoundedSemaphore(1)
 
-    # Ограничитель параллелизма до L
-    L = max(1, int(L))
-    limit_sem = threading.Semaphore(L)
-
     workers = max(1, min(max_workers, n))
     chunk = (n + workers - 1) // workers
+
+    # Ограничитель параллелизма до L
+    L = min(max(1, int(L)), workers)
+    limit_sem = threading.Semaphore(L)
 
     ranges = []
     for w in range(workers):
