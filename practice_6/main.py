@@ -4,6 +4,7 @@ import threading
 from collections import deque
 
 DIVS = tuple(range(2, 10))
+BATCH = 1_000  # Размер пачки для выгрузки в общую очередь
 
 
 def count_divisors(x: int) -> int:
@@ -17,14 +18,26 @@ def count_divisors(x: int) -> int:
 def process_chunk(arr, result, start, end, shared_q, q_lock, worker_no: int):
     # Обрабатываем индексы [start, end)
     thread_id = threading.get_ident()
+    local = []
+
     for i in range(start, end):
         x = arr[i]
         cnt = count_divisors(x)
         result[i] = cnt
+        local.append((worker_no, thread_id, i, x, cnt))
 
+        # Выгружаем пачку, чтобы не копить слишком много в памяти
+        if len(local) >= BATCH:
+            # Критическая секция
+            with q_lock:
+                shared_q.extend(local)
+            local.clear()
+
+    # Выгружаем остаток
+    if local:
         # Критическая секция
         with q_lock:
-            shared_q.append((worker_no, thread_id, i, x, cnt))
+            shared_q.extend(local)
 
 
 def parallel_count(arr, max_workers=None):
@@ -34,7 +47,7 @@ def parallel_count(arr, max_workers=None):
         return result, deque()
 
     if max_workers is None:
-        max_workers = min(n, (os.cpu_count() or 1))
+        max_workers = os.cpu_count() or 1
 
     # Общая очередь + мьютекс
     shared_q = deque()
