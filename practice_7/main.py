@@ -14,20 +14,21 @@ def count_divisors(x: int) -> int:
     return c
 
 
-def process_chunk(arr, result, start, end, shared_q, q_lock, worker_no: int):
-    # Обрабатываем индексы [start, end)
-    thread_id = threading.get_ident()
-    for i in range(start, end):
-        x = arr[i]
-        cnt = count_divisors(x)
-        result[i] = cnt
+def process_chunk(arr, result, start, end, shared_q, q_sem, worker_no: int, limit_sem):
+    # Ограничиваем количество одновременно работающих потоков до L
+    with limit_sem:
+        thread_id = threading.get_ident()
+        for i in range(start, end):
+            x = arr[i]
+            cnt = count_divisors(x)
+            result[i] = cnt
 
-        # Критическая секция
-        with q_lock:
-            shared_q.append((worker_no, thread_id, i, x, cnt))
+            # Критическая секция (через семафор)
+            with q_sem:
+                shared_q.append((worker_no, thread_id, i, x, cnt))
 
 
-def parallel_count(arr, max_workers=None):
+def parallel_count(arr, L: int, max_workers=None):
     n = len(arr)
     result = [0] * n
     if n == 0:
@@ -36,9 +37,13 @@ def parallel_count(arr, max_workers=None):
     if max_workers is None:
         max_workers = min(n, (os.cpu_count() or 1))
 
-    # Общая очередь + мьютекс
+    # Общая очередь + "мьютекс" на семафоре (двоичный семафор)
     shared_q = deque()
-    q_lock = threading.Lock()
+    q_sem = threading.BoundedSemaphore(1)
+
+    # Ограничитель параллелизма до L
+    L = max(1, int(L))
+    limit_sem = threading.Semaphore(L)
 
     workers = max(1, min(max_workers, n))
     chunk = (n + workers - 1) // workers
@@ -54,7 +59,17 @@ def parallel_count(arr, max_workers=None):
         futures = []
         for worker_no, (s, e) in enumerate(ranges, start=1):
             futures.append(
-                ex.submit(process_chunk, arr, result, s, e, shared_q, q_lock, worker_no)
+                ex.submit(
+                    process_chunk,
+                    arr,
+                    result,
+                    s,
+                    e,
+                    shared_q,
+                    q_sem,
+                    worker_no,
+                    limit_sem,
+                )
             )
         for f in futures:
             f.result()
@@ -68,10 +83,15 @@ def main():
     data = sys.stdin.read().strip().split()
     if not data:
         return
-    n = int(data[0])
-    arr = list(map(int, data[1:n + 1]))
 
-    res, q = parallel_count(arr)
+    # Формат ввода:
+    # n L
+    # a1 a2 ... an
+    n = int(data[0])
+    L = int(data[1])
+    arr = list(map(int, data[2:n + 2]))
+
+    res, q = parallel_count(arr, L=L)
 
     print(*res)
 

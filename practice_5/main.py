@@ -18,13 +18,13 @@ def process_chunk(arr, result, start, end):
         result[i] = count_divisors(arr[i])
 
 
-def parallel_count(arr, max_workers=None, chunk_size=50_000):
+def parallel_count(arr, max_workers=None):
     n = len(arr)
     result = [0] * n
     if n == 0:
         return result
 
-    # разумное число потоков
+    # Разумное число потоков
     if max_workers is None:
         max_workers = min(n, (os.cpu_count() or 1))
 
@@ -56,7 +56,7 @@ def main():
     if not data:
         return
     n = int(data[0])
-    arr = list(map(int, data[1 : n + 1]))
+    arr = list(map(int, data[1:n + 1]))
 
     res = parallel_count(arr)
     print(*res)
