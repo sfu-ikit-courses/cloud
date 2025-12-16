@@ -18,7 +18,6 @@ class Competition:
         self.targets = [i % m for i in range(n)]  # "мишень" стрелка
 
         self.scores = [0] * n  # очки в текущем туре
-        self.round_done = [-1] * n
         self.finished_count = 0
         self.round_no = 0
         self.phase = "WAIT"  # WAIT -> SHOOT -> DONE
@@ -39,22 +38,12 @@ class Competition:
         # 3 выстрела: суммируем случайные очки
         return sum(rng.choice(POINTS) for _ in range(3))
 
-    def shoot_task(self, archer_id: int, round_no: int):
+    def shoot_task(self, archer_id: int):
         with self.target_sem:
             points = self.shoot_three(archer_id)
 
         with self.cond:
-            # тур сменился / стрелок выбыл / уже стрелял в этом туре
-            if (
-                self.phase != "SHOOT"
-                or self.round_no != round_no
-                or archer_id not in self.active
-                or self.round_done[archer_id] == round_no
-            ):
-                return
-
             self.scores[archer_id] = points
-            self.round_done[archer_id] = round_no
             self.finished_count += 1
             self.cond.notify_all()
 
@@ -75,7 +64,7 @@ class Competition:
                     print(f"\n=== Старт тура {round_no}. Участники: {active_list} ===")
 
                     for archer_id in active_list:
-                        ex.submit(self.shoot_task, archer_id, round_no)
+                        ex.submit(self.shoot_task, archer_id)
 
                     # Ждём, пока все активные отстреляются
                     while self.finished_count < len(self.active):
