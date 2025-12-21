@@ -116,16 +116,17 @@ def main():
 
     data = sys.stdin.read().strip().split()
     if not data:
-        print("Введите: N [seed] [max_attempts]")
+        print("Введите: N [seed] [max_attempts] [out_path]")
         return
 
     # Формат ввода:
-    # N [seed] [max_attempts]
+    # N [seed] [max_attempts] [out_path]
     n = int(data[0])
     seed = int(data[1]) if len(data) >= 2 else None
     max_attempts = int(data[2]) if len(data) >= 3 else None
+    out_path = data[3] if len(data) >= 4 else "circles.csv"
 
-    run(n=n, seed=seed, max_attempts=max_attempts)
+    run(n=n, seed=seed, max_attempts=max_attempts, out_path=out_path)
 
 
 if __name__ == "__main__":
