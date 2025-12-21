@@ -26,7 +26,7 @@ def parallel_count(arr, max_workers=None):
 
     # Разумное число потоков
     if max_workers is None:
-        max_workers = min(n, (os.cpu_count() or 1))
+        max_workers = os.cpu_count() or 1
 
     workers = max(1, min(max_workers, n))
     chunk = (n + workers - 1) // workers
